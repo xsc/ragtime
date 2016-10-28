@@ -71,9 +71,19 @@
   ([db-spec options]
    (->SqlDatabase db-spec (:migrations-table options "ragtime_migrations"))))
 
+(defn- throw-invalid-statement!
+  [statement]
+  (throw
+    (IllegalArgumentException.
+      (str "statement not compatible with 'clojure.java.jdbc': "
+           (pr-str statement)))))
+
 (defn- execute-sql! [db-spec statements]
-  (doseq [s statements]
-    (sql/execute! db-spec [s])))
+  (doseq [s statements
+          :let [s (cond (string? s) [s]
+                        (sequential? s) s
+                        :else (throw-invalid-statement! s))]]
+    (sql/execute! db-spec s)))
 
 (defrecord SqlMigration [id up down]
   p/Migration
